@@ -1,0 +1,179 @@
+
+---
+
+## 1. Lexical analyzer in C (`1lexical.c`)
+
+**Aim:** To implement a lexical analyzer that identifies keywords, identifiers, numbers, operators and symbols from a source file.
+
+**Algorithm**
+1. Start.
+2. Store the keywords (`int, float, char, if, else, while, for, return, void, double`) in an array.
+3. Open the input file `input.c` in read mode. If it can't be opened, print "File not found" and stop.
+4. Read the next character `ch` from the file. Repeat steps 5–9 until `ch` is EOF.
+5. If `ch` is a whitespace character, skip it and go to step 4.
+6. If `ch` is a letter or underscore:
+   - Collect characters into a buffer `str` while they are letters, digits or underscores.
+   - Terminate `str` with `'\0'`.
+   - Compare `str` with each keyword. If it matches, print "Keyword", otherwise print "Identifier".
+   - Push the last-read character back into the file (`ungetc`).
+7. Else if `ch` is a digit:
+   - Read consecutive digits and print them as "Number".
+   - Push back the last non-digit character.
+8. Else if `ch` is one of `+ - * / = < > !`, print "Operator".
+9. Else if `ch` is one of `( ) { } [ ] , ; #`, print "Symbol". Otherwise print "Unknown".
+10. Close the file.
+11. Stop.
+
+---
+
+## 2. Lexical analyzer using Lex (`2lexical.c`)
+
+**Aim:** To implement a lexical analyzer using the Lex tool.
+
+**Algorithm**
+1. Start.
+2. In the **definition section**, include the header `stdio.h`.
+3. In the **rules section**, write a regular expression and an action for each token class:
+   - `int|float|char|if|else|while|return` → print "Keyword"
+   - `[0-9]+` → print "Integer"
+   - `[a-zA-Z_][a-zA-Z0-9_]*` → print "Identifier"
+   - `[+*/=-]` → print "Operator"
+   - `[(){};,]` → print "Special Symbol"
+   - `[ \t\n]+` → ignore whitespace
+   - `.` → print "unknown"
+4. In the **user subroutine section**, write `main()`:
+   - Open `input.txt` in read mode and check for failure.
+   - Assign the file pointer to `yyin`.
+   - Call `yylex()` to scan the input.
+   - Close the file.
+5. Define `yywrap()` to return 1, which signals the end of input.
+6. Compile with `lex file.l`, then `gcc lex.yy.c`, then run `./a.out`.
+7. Stop.
+
+---
+
+## 3. YACC program to validate an arithmetic expression (`3yacc.l`, `3yacc.y`)
+
+**Aim:** To check whether a given arithmetic expression is valid using Lex and YACC.
+
+**Algorithm**
+
+*Lex part (`3yacc.l`)*
+1. Include `y.tab.h`.
+2. Return token `NUMBER` for `[0-9]+`.
+3. Return token `ID` for `[a-zA-Z_][a-zA-Z0-9_]*`.
+4. Ignore spaces and tabs.
+5. Return the operators `+ - * / ( )` and newline as themselves. Return any other character as `yytext[0]`.
+6. Define `yywrap()` returning 1.
+
+*YACC part (`3yacc.y`)*
+1. Declare tokens `NUMBER` and `ID`.
+2. Set precedence and associativity: `+ -` left (lowest), `* /` left (higher), `UMINUS` right (highest).
+3. Define the grammar:
+   - `input → expr '\n'`. On this rule, print "Valid arithmetic expr".
+   - `expr → expr + expr | expr - expr | expr * expr | expr / expr | ( expr ) | - expr | NUMBER | ID`
+4. Define `yyerror()` to print "Invalid arithmetic expr".
+5. In `main()`, read the expression and call `yyparse()`.
+6. If the input matches the grammar, the parser accepts it and prints "Valid". Otherwise a syntax error triggers `yyerror()`.
+7. Run: `lex 3yacc.l`, `yacc -d 3yacc.y`, `gcc lex.yy.c y.tab.c`, `./a.out`.
+
+---
+
+## 4. YACC desk calculator (`4calc.l`, `4calc.y`)
+
+**Aim:** To implement a calculator that evaluates arithmetic expressions using Lex and YACC.
+
+**Algorithm**
+
+*Lex part*
+1. Include `y.tab.h` and `stdlib.h`.
+2. For `[0-9]+`, convert the text to an integer with `atoi(yytext)`, store it in `yylval`, and return `NUMBER`.
+3. Ignore spaces and tabs.
+4. Return newline and all other characters (operators, parentheses) as themselves.
+
+*YACC part*
+1. Declare token `NUMBER`. Set `+ -` as left associative with lower precedence than `* /`.
+2. Define the grammar with semantic actions:
+   - `input → ε | input line`
+   - `line → expr '\n'`. On this rule, print `result = $1`.
+   - `expr → NUMBER` with `$$ = $1`
+   - `expr → expr + expr` with `$$ = $1 + $3`
+   - `expr → expr - expr` with `$$ = $1 - $3`
+   - `expr → expr * expr` with `$$ = $1 * $3`
+   - `expr → expr / expr`. If `$3 == 0`, print "Division by zero error" and set `$$ = 0`. Otherwise `$$ = $1 / $3`.
+   - `expr → ( expr )` with `$$ = $2`
+3. `yyerror()` prints "Invalid expression".
+4. `main()` calls `yyparse()`, which reads and evaluates expressions line by line.
+5. Compile and run as in program 3.
+
+---
+
+## 5. Epsilon closure (`5epsilonclosure.c`)
+
+**Aim:** To find the ε-closure of every state of an ε-NFA.
+
+**Algorithm**
+1. Start.
+2. Read the number of states `n`.
+3. Read the ε-transition matrix `e[n][n]`, where `e[i][j] = 1` if there is an ε-transition from `qi` to `qj`, otherwise 0.
+4. For each state `i` from 0 to n−1:
+   - Reset the `visited[]` array to 0.
+   - Call `epsilonClosure(i)`.
+5. **epsilonClosure(state):**
+   - Mark `visited[state] = 1`.
+   - Print `q<state>`, because every state is in its own closure.
+   - For each state `j` from 0 to n−1: if `e[state][j] = 1` and `j` is not visited, call `epsilonClosure(j)`.
+6. Print the set of states reached as ε-closure(`qi`).
+7. Stop.
+
+---
+
+## 9. Recursive descent parser (`9rdp.c`)
+
+**Aim:** To implement a recursive descent parser for arithmetic expressions.
+
+**Grammar used**
+```
+E → T + E | T - E | T
+T → F * T | F / T | F
+F → ( E ) | id          (id = a single letter)
+```
+
+**Algorithm**
+1. Start.
+2. Read the input string into `input[]`. Set index `i = 0` and `error = 0`.
+3. Call `E()`.
+4. **E():** call `T()`. If there is no error and `input[i]` is `+` or `-`, increment `i` and call `E()`.
+5. **T():** call `F()`. If there is no error and `input[i]` is `*` or `/`, increment `i` and call `T()`.
+6. **F():**
+   - If `input[i]` is a letter, increment `i`.
+   - Else if `input[i]` is `(`, increment `i` and call `E()`. Then if `input[i]` is `)`, increment `i`, otherwise set `error = 1`.
+   - Else set `error = 1`.
+7. After `E()` returns, if `input[i] == '\0'` and `error == 0`, print "String accepted". Otherwise print "String rejected".
+8. Stop.
+
+---
+
+## 12. YACC program to validate an identifier (`12yacc.l`, `12yacc.y`)
+
+**Aim:** To check whether a given string is a valid identifier using Lex and YACC.
+
+**Algorithm**
+
+*Lex part*
+1. Include `y.tab.h`.
+2. For the pattern `[a-zA-Z_][a-zA-Z0-9_]*`, return token `ID`.
+3. Ignore spaces and tabs. Return newline and all other characters as themselves.
+4. Define `yywrap()` returning 1.
+
+*YACC part*
+1. Declare token `ID`.
+2. Define the rule `input → ID '\n'`. On this rule, print "Valid identifier" and return.
+3. Define `yyerror()` to print "Invalid identifier".
+4. In `main()`, prompt for the identifier and call `yyparse()`.
+5. If the input starts with a letter or underscore and contains only letters, digits and underscores, the parser accepts it. Any other input (for example one starting with a digit) causes a syntax error and prints "Invalid identifier".
+6. Compile with `lex`, then `yacc -d`, then `gcc lex.yy.c y.tab.c`, then run.
+
+---
+
+**Viva tip for program 9:** your grammar is right-recursive (`E → T + E`), which is what makes recursive descent work without left-recursion elimination. If the examiner asks why, say that left recursion like `E → E + T` would cause infinite recursion.
